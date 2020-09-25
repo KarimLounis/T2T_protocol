@@ -127,7 +127,6 @@ rule Receive_Message_m2_Send_Message_m3l:
 
 
 
-
 rule Receive_Message_m3r:
   let
    beta3_20 = XOR(beta1_20, beta2_20)   
@@ -193,6 +192,9 @@ Computel(T1, Xtmp1lg, Xtmp2lg, Xtmp3lg, Xbeta1_10, Xbeta2_10) @ #l &
 )
 "
 
+
+//This lemma is for the secrecy of some obfuscated responses as well as for the shared nonce
+
 lemma Disclose_shared_nonce:
 "
 All T0 XLl XLr Xalpha3_02 Xalpha3_01 #i #j.
@@ -203,6 +205,9 @@ All T0 XLl XLr Xalpha3_02 Xalpha3_01 #i #j.
 )
 ==> not( (Ex #k1. K(XLl) @k1) | (Ex #k2. K(XLr) @k2) | (Ex #k3. K(Xalpha3_01) @k3) | (Ex #k4. K(Xalpha3_02) @k4))
 "
+
+
+//This lemma is for the secrecy of the secret key, some obfuscated responses, as well as for the shared nonce
 
 lemma Disclose_key:
 "
