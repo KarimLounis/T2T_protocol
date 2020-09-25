@@ -1,1 +1,227 @@
 
+//Author: Karim Lounis
+//Date: 20 Sept, 2020.
+//Last Modification: 24 Setp, 2020, at 11:40PM
+//This is the TAMARIN specification for T2T-MAP protocol (2020)
+
+
+theory T2TC2
+
+begin
+
+//Include the builtins such as the hash functions and Xor operator
+builtins: hashing, xor
+//Define the functions that will be used: The Xor and the PUF
+functions: XOR/2, PUF1/1, PUF2/1, PUF0/1, H2/2, H3/3, H1/1, H4/1
+
+
+rule create_identity_l:
+  let
+   alpha1l = XOR(PUF2(PUF1(~x1l)), PUF2(PUF1(~x2l)))
+   alpha2l = XOR(PUF2(PUF1(~x1l)), PUF2(PUF1(~x3l)))
+  in 
+  [Fr(~x1l), Fr(~x2l), Fr(~x3l)]-->[!Identityl($A, ~x1l, ~x2l, ~x3l, alpha1l, alpha2l)]
+  
+rule create_identity_g:
+  let
+   alpha1g1 = XOR(PUF1(PUF0(~x1g)), PUF1(PUF0(~x2g)))
+   alpha2g1 = XOR(PUF1(PUF0(~x1g)), PUF1(PUF0(~x3g)))
+   alpha1g2 = XOR(PUF2(PUF0(~x1g)), PUF2(PUF0(~x2g)))
+   alpha2g2 = XOR(PUF2(PUF0(~x1g)), PUF2(PUF0(~x3g))) 
+  in 
+  [Fr(~x1g), Fr(~x2g), Fr(~x3g)]-->[!Identityg($G, ~x1g, ~x2g, ~x3g, alpha1g1, alpha2g1, alpha1g2, alpha2g2)]
+
+rule create_identity_r:
+  let
+   alpha1r = XOR(PUF1(PUF2(~x1r)), PUF1(PUF2(~x2r)))
+   alpha2r = XOR(PUF1(PUF2(~x1r)), PUF1(PUF2(~x3r)))
+  in 
+  [Fr(~x1r), Fr(~x2r), Fr(~x3r)]-->[!Identityr($B, ~x1r, ~x2r, ~x3r, alpha1r, alpha2r)]
+  
+
+
+rule Send_Message_m0r:
+  [!Identityr($T2, ~x12, ~x22, ~x32, alpha1_20, alpha2_20),  
+  !Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), Fr(~N2)]  
+  -->
+  [Out(<'m0r', $T2,  $T0, ~N2, PUF2(~x12), PUF2(~x22) , PUF2(~x32)>)]
+  
+rule Send_Message_m0l:
+  [!Identityl($T1, ~x11, ~x21, ~x31, alpha1_10, alpha2_10), 
+  !Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), Fr(~N1)]  
+  -->
+  [Out(<'m0l', $T1,  $T0, ~N1, PUF1(~x11), PUF2(~x21) , PUF2(~x31)>)]
+ 
+   
+rule Receive_Message_m0_Send_Message_m1r:
+  let
+   tmp1gr=PUF0(PUF2(~x12))
+   tmp2gr=PUF0(PUF2(~x22))
+   beta1_02 = XOR(tmp1gr, tmp2gr)
+   tmp3gr=PUF0(PUF2(~x32))
+   beta2_02 = XOR(tmp1gr, tmp3gr)   
+  in
+  [!Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), In(<'m0r', T2,  $T0, ~N2, PUF2(~x12), PUF2(~x22) , PUF2(~x32)>), Fr(~N0)]  
+  --[Computegr($T0, tmp1gr, tmp2gr, tmp3gr, beta1_02, beta2_02)]->
+  [Out(<'m1r', $T0, T2, ~N0, ~N2, PUF0(~x10), PUF0(~x20) , PUF0(~x30), H3(H2(beta1_02, XOR(~N0, ~N2)), ~N0, ~N2)>)]
+  
+
+rule Receive_Message_m0_Send_Message_m1l:
+  let
+   tmp1lr=PUF0(PUF1(~x11))
+   tmp2lr=PUF0(PUF1(~x21))
+   beta1_01 = XOR(tmp1lr, tmp2lr)
+   tmp3lr=PUF0(PUF1(~x31))
+   beta2_01 = XOR(tmp1lr, tmp3lr)   
+  in
+  [!Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), In(<'m0l', T1,  $T0, ~N1, PUF1(~x11), PUF1(~x21) , PUF1(~x31)>), Fr(~N0)]  
+  --[Computegl($T0, tmp1lr, tmp2lr, tmp3lr, beta1_01, beta2_01)]->
+  [Out(<'m1l', $T0, T1, ~N0, ~N1, PUF0(~x10), PUF0(~x20) , PUF0(~x30), H3(H2(beta1_01, XOR(~N0, ~N1)), ~N0, ~N1)>)]
+  
+ 
+ 
+rule Receive_Message_m1_Send_Message_m2r:
+   let
+   tmp1rg=PUF2(PUF0(~x10))
+   tmp2rg=PUF2(PUF0(~x20))
+   beta1_20 = XOR(tmp1rg, tmp2rg)
+   tmp3rg=PUF2(PUF0(~x30))
+   beta2_20 = XOR(tmp1rg, tmp3rg)   
+  in
+  [!Identity($T2, ~x12, ~x22, ~x32, alpha1_20, alpha2_20), In(<'m1r', T0, $T2, ~N0, ~N2, PUF0(~x10), PUF0(~x20) , PUF0(~x30), H3(H2(beta1_02, XOR(~N0, ~N2)), ~N0, ~N2)>)]  
+  --[Computer($T2, tmp1rg, tmp2rg, tmp3rg, beta1_20, beta2_20)]->
+  [Out(<'m2r', $T2, T0, ~N2, ~N0, H3(H2(beta1_20, XOR(~N0, ~N2)), ~N0, ~N2)>)]
+
+
+
+rule Receive_Message_m1_Send_Message_m2l:
+   let
+   tmp1lg=PUF1(PUF0(~x10))
+   tmp2lg=PUF1(PUF0(~x20))
+   beta1_10 = XOR(tmp1lg, tmp2lg)
+   tmp3lg=PUF1(PUF0(~x30))
+   beta2_10 = XOR(tmp1lg, tmp3lg)   
+  in
+  [!Identity($T1, ~x11, ~x21, ~x31, alpha1_10, alpha2_10), In(<'m1l', T0, $T1, ~N0, ~N1, PUF0(~x10), PUF0(~x20) , PUF0(~x30), H3(H2(beta1_01, XOR(~N0, ~N1)), ~N0, ~N1)>)]  
+  --[Computel($T1, tmp1lg, tmp2lg, tmp3lg, beta1_10, beta2_10)]->
+  [Out(<'m2l', $T1, T0, ~N1, ~N0, H3(H2(beta1_10, XOR(~N0, ~N1)), ~N0, ~N1)>)]
+
+
+
+rule Receive_Message_m2_Send_Message_m3r:
+  let
+   alpha3_02 = XOR(alpha1_02, alpha2_02)
+  in
+  [!Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), In(<'m2r', T2, $T0, ~N2, ~N0, H3(H2(beta1_20, XOR(~N0, ~N2)), ~N0, ~N2)>), Fr(~L)]  
+  --[ComputegrL($T0, ~L, alpha3_02)]->
+  [Out(<'m3r', $T0, T2, ~N0, ~N2, H3(H2($beta2_02, XOR(~N0, ~N2)), ~N0, ~N2), XOR(H1(alpha2_02),alpha2_01), XOR(~L,H1(alpha3_02))>)]
+  
+
+rule Receive_Message_m2_Send_Message_m3l:
+  let
+   alpha3_01 = XOR(alpha1_01, alpha2_01)
+  in
+  [!Identityg($T0, ~x10, ~x20, ~x30, alpha1_01, alpha2_01, alpha1_02, alpha2_02), In(<'m2l', T1, $T0, ~N1, ~N0, H3(H2(beta1_10, XOR(~N0, ~N1)), ~N0, ~N1)>), Fr(~L)]  
+  --[ComputeglL($T0, ~L, alpha3_01)]->
+  [Out(<'m3l', $T0, T1, ~N0, ~N1, H3(H2($beta2_01, XOR(~N0, ~N1)), ~N0, ~N1), XOR(H1(alpha2_01),alpha2_02), XOR(~L,H1(alpha3_01))>)]
+
+
+
+
+rule Receive_Message_m3r:
+  let
+   beta3_20 = XOR(beta1_20, beta2_20)   
+   alpha2_01r = XOR(XOR(H1(alpha2_02),alpha2_01), H1(beta2_20))
+   Lr = XOR(XOR(~L,H1(alpha3_02)),H1(beta3_20))
+  in
+  [!Identity($T2, ~x12, ~x22, ~x32, alpha1_20, alpha2_20), In(<'m3r', T0, $T2, ~N0, ~N2, H3(H2($beta2_02, XOR(~N0, ~N2)), ~N0, ~N2), XOR(H1(alpha2_02),alpha2_01), XOR(~L,H1(alpha3_02))>)]  
+  --[Saver1($T2, Lr, beta3_20, alpha2_01r)]->
+  [Storering($T2, Lr, beta3_20, alpha2_01r)]
+
+
+rule Receive_Message_m3l_Send_Message_m4:
+   let
+   beta3_10 = XOR(beta1_10, beta2_10)   
+   alpha2_02l = XOR(XOR(H1(alpha2_01),alpha2_02), H1(beta2_10))
+   Ll = XOR(XOR(~L,H1(alpha3_01)),H1(beta3_10))
+  in
+  [!Identity($T1, ~x11, ~x21, ~x31, alpha1_10, alpha2_10), In(<'m3l', T0, $T1, ~N0, ~N1, H3(H2($beta2_01, XOR(~N0, ~N1)), ~N0, ~N1), XOR(H1(alpha2_01),alpha2_02), XOR(~L,H1(alpha3_01))>), Fr(~Kr)]  
+  --[Savel1($T1, Ll, ~Kl, beta3_10, alpha2_02l)]->
+  [Out(<'m4', $T1, T2, ~N1, ~N2, XOR(~Kl, H1(alpha2_02l)),H4(H2(alpha2_02l, XOR(~N2, ~N1)), ~N2, ~N1, Ll)>)]
+
+
+rule Receive_Message_m4_Send_Message_m5:
+  let
+   beta2_02r = XOR(PUF2(PUF1(x10)), PUF2(PUF1(x30)))
+   Kr = XOR(beta2_02r, XOR(~Kl, H1(alpha2_02l)))
+  in
+  [!Identity($T2, ~x12, ~x22, ~x32, alpha1_20, alpha2_20), In(<'m4', T1, $T2, ~N1, ~N2, XOR(~Kl, H1(alpha2_02l)),H4(H2(alpha2_02l, XOR(~N2, ~N1)), ~N2, ~N1, Ll)>)]  
+  --[Saver2($T2, Kr, beta2_02r)]->
+  [Out(<'m5', $T2, T1, ~N1, ~N2, H1(XOR(Kr, alpha2_01r)), H4(H2(beta2_10, XOR(~N2, ~N1)), ~N2, ~N1, Lr)>)]
+
+ 
+  
+lemma Disclose_obfuscated_Responses:
+"
+All T1 T2 T0 Xtmp1gr Xtmp2gr Xtmp3gr Xbeta1_02 Xbeta2_02 Xtmp1lr Xtmp2lr Xtmp3lr Xbeta1_01 Xbeta2_01 Xtmp1rg Xtmp2rg Xtmp3rg Xbeta1_20 Xbeta2_20 Xtmp1lg Xtmp2lg Xtmp3lg Xbeta1_10 Xbeta2_10 #i #j #k #l.
+(Computegr(T0, Xtmp1gr, Xtmp2gr, Xtmp3gr, Xbeta1_02, Xbeta2_02) @ #i &  
+Computegl(T0, Xtmp1lr, Xtmp2lr, Xtmp3lr, Xbeta1_01, Xbeta2_01) @ #j &
+Computer(T2, Xtmp1rg, Xtmp2rg, Xtmp3rg, Xbeta1_20, Xbeta2_20) @ #k &
+Computel(T1, Xtmp1lg, Xtmp2lg, Xtmp3lg, Xbeta1_10, Xbeta2_10) @ #l &
+#i < #j & #j < #k & #k < #l &  not(T1 = T2) & not(T1 = T0) & not(T0 = T2)
+)
+==> not( (Ex #k1. K(Xtmp1gr) @k1) |
+(Ex #k2. K(Xtmp2gr) @k2) |
+(Ex #k3. K(Xtmp3gr) @k3) |
+(Ex #k4. K(Xtmp1lr) @k4) |
+(Ex #k5. K(Xtmp2lr) @k5) |
+(Ex #k6. K(Xtmp3lr) @k6) |
+(Ex #k7. K(Xbeta1_02) @k7) |
+(Ex #k8. K(Xbeta2_02) @k8) |
+(Ex #k9. K(Xbeta1_01) @k9) |
+(Ex #k10. K(Xbeta2_01) @k10)| 
+(Ex #k11. K(Xbeta1_20) @k11) |
+(Ex #k12. K(Xbeta2_20) @k12) |
+(Ex #k13. K(Xbeta1_10) @k13) |
+(Ex #k14. K(Xbeta2_10) @k14)|
+(Ex #k15. K(Xtmp1rg) @k15) |
+(Ex #k16. K(Xtmp2rg) @k16) |
+(Ex #k17. K(Xtmp3rg) @k17) |
+(Ex #k18. K(Xtmp1lg) @k18) |
+(Ex #k19. K(Xtmp2lg) @k19) |
+(Ex #k20. K(Xtmp3lg) @k20) 
+)
+"
+
+lemma Disclose_shared_nonce:
+"
+All T0 XLl XLr Xalpha3_02 Xalpha3_01 #i #j.
+(ComputeglL(T0, XLl, Xalpha3_01) @ #i &
+  ComputegrL(T0, XLr, Xalpha3_02) @ #j &
+  #j < #i &
+  XLl=XLr
+)
+==> not( (Ex #k1. K(XLl) @k1) | (Ex #k2. K(XLr) @k2) | (Ex #k3. K(Xalpha3_01) @k3) | (Ex #k4. K(Xalpha3_02) @k4))
+"
+
+lemma Disclose_key:
+"
+All T1 T2 XKl XKr Xbeta2_02r Xbeta3_20 Xalpha2_01r Xbeta3_10 Xalpha2_02l XLr XLl #i #j #k.
+(Saver1(T2, XLr, Xbeta3_20, Xalpha2_01r) @ #i &
+Savel1(T1, XLl, XKl, Xbeta3_10, Xalpha2_02l) @ #j &
+Saver2(T2, XKr, Xbeta2_02r) @ #k &
+  #i < #j & #j < #k
+  & XLl=XLr & XKl=XKr &
+  not(T1 = T2)
+)
+==> not( (Ex #k1. K(XLl) @k1) | (Ex #k2. K(XLr) @k2) | (Ex #k3. K(XLl) @k3) | (Ex #k4. K(XKr) @k4)
+| (Ex #k5. K(Xbeta2_02r) @k5) | (Ex #k6. K(Xbeta3_20) @k6) | (Ex #k7. K(Xalpha2_01r) @k7) |
+(Ex #k8. K(Xbeta3_10) @k8) | (Ex #k9. K(Xalpha2_02l) @k9)
+)
+"
+
+end
+
+
+
+
